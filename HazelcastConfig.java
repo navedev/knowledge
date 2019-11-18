@@ -51,14 +51,14 @@ public class HazelcastConfig {
 //	@Bean
 //	public HazelcastCacheManager hazelcastCacheManager() {
 //		ClientConfig config = new ClientConfig();
-//		config.setInstanceName("storeelasticsearch-instance");
+//		config.setInstanceName("instance");
 //		config.setProperty("hazelcast.client.statistics.enabled", "true");
 //		GroupConfig groupConfig = config.getGroupConfig();
 //		if (groupConfig == null) {
 //			groupConfig = new GroupConfig();
 //		}
-//		groupConfig.setName("dev-local");
-//		groupConfig.setPassword("dev-pass");
+//		groupConfig.setName("");
+//		groupConfig.setPassword("");
 //		config.setGroupConfig(groupConfig);
 //
 //		// Configuring Near Cache
