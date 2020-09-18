@@ -19,7 +19,7 @@ import org.springframework.web.reactive.function.client.WebClient;
  * Ex: Item Price, Item Selling Restrictions APIC URLs are secured using OAuth
  * <p>
  * 
- * @author ndevara
+ * @author Naveen Devarajaiah
  *
  */
 @Configuration
