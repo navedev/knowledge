@@ -1,9 +1,3 @@
-/*
- * Copyright (C) Lowe's Companies, Inc. All rights reserved.
- * This file is for internal use only at Lowe's Companies, Inc.
- */
-package com.lowes.eoms.eordermodservices.config;
-
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -24,7 +18,7 @@ import com.lowes.eoms.eordermodservices.interceptor.OAuthClientCredentialsRestTe
 /**
  * Spring Security (OAuth 2.0) Rest Template Configuration
  * 
- * @author ndevara
+ * @author Naveen Devarajaiah
  *
  */
 @Configuration
