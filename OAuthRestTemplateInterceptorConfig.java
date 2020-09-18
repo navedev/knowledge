@@ -1,4 +1,3 @@
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -22,7 +21,7 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
  * @author Naveen Devarajaiah
  *
  */
-public class OAuthClientCredentialsRestTemplateInterceptorConfig
+public class OAuthRestTemplateInterceptorConfig
     implements ClientHttpRequestInterceptor {
 
   private OAuth2AuthorizedClientManager manager;
