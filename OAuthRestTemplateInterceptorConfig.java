@@ -26,13 +26,25 @@ public class OAuthRestTemplateInterceptorConfig
 
   private OAuth2AuthorizedClientManager manager;
   private Authentication principal;
-  private ClientRegistration clientRegistration;
+  private List<ClientRegistration> clientRegistrations;
+  
+  private String clientRegistrationId;
 
-  public OAuthClientCredentialsRestTemplateInterceptorConfig(OAuth2AuthorizedClientManager manager,
-      ClientRegistration clientRegistration) {
+  /**
+   * Interceptor Constructor
+   * 
+   * @param manager {@link OAuth2AuthorizedClientManager}
+   * @param clientRegistrations {@link ClientRegistration}
+   */
+  public OAuthRestTemplateInterceptorConfig(OAuth2AuthorizedClientManager manager,
+      List<ClientRegistration> clientRegistrations) {
     this.manager = manager;
-    this.clientRegistration = clientRegistration;
+    this.clientRegistrations = clientRegistrations;
     this.principal = createPrincipal();
+  }
+  
+  public void setClientRegistrationId(String clientRegistrationId) {
+    this.clientRegistrationId = clientRegistrationId;
   }
 
   @Override
@@ -40,13 +52,13 @@ public class OAuthRestTemplateInterceptorConfig
       ClientHttpRequestExecution execution) throws IOException {
     
     OAuth2AuthorizeRequest oAuth2AuthorizeRequest =
-        OAuth2AuthorizeRequest.withClientRegistrationId(clientRegistration.getRegistrationId())
+        OAuth2AuthorizeRequest.withClientRegistrationId(this.clientRegistrationId)
             .principal(principal).build();
     
     OAuth2AuthorizedClient client = manager.authorize(oAuth2AuthorizeRequest);
     if (Objects.isNull(client)) {
       throw new IllegalStateException("Failed to retrieve Access Token for Client with ID: "
-          + clientRegistration.getRegistrationId() + " as Client is Null");
+          + this.clientRegistrationId + " as Client is Null");
     }
 
     request.getHeaders().add(HttpHeaders.AUTHORIZATION,
@@ -91,7 +103,9 @@ public class OAuthRestTemplateInterceptorConfig
 
       @Override
       public String getName() {
-        return clientRegistration.getClientId();
+        return clientRegistrations.stream().filter(clientRegistration -> clientRegistration
+            .getRegistrationId().equalsIgnoreCase(clientRegistrationId)).findAny().get()
+            .getClientId();
       }
     };
   }
