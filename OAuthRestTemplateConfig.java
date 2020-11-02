@@ -24,31 +24,80 @@ import com.lowes.eoms.eordermodservices.interceptor.OAuthClientCredentialsRestTe
 @Configuration
 public class OAuthRestTemplateConfig {
   
-  @Value(value = "${spring.security.oauth2.client.provider.ibmApic.token-uri}")
-  private String tokenURI;
-  
-  @Value(value = "${spring.security.oauth2.client.registration.ibmApic.client-id}")
-  private String clientId;
-  
-  @Value(value = "${spring.security.oauth2.client.registration.ibmApic.client-secret}")
-  private String clientSecret;
-  
-  @Value(value = "${spring.security.oauth2.client.registration.ibmApic.authorization-grant-type}")
-  private String authorizationGrantType;
-  
-  @Value(value = "#{'${spring.security.oauth2.client.registration.ibmApic.scope}'.split(', ')}")
-  private List<String> scope;
-  
+  @Autowired
+  private OAuth2ClientProperties oAuth2ClientProperties;
+
+  /**
+   * Custom OAuth Rest Template
+   * 
+   * @return - returns OAuth Rest Template
+   */
   @Bean
   @Qualifier("oAuthRestTemplate")
   public RestTemplate oAuthRestTemplate() {
 
-    ClientRegistration clientRegistration = ClientRegistration.withRegistrationId("ibmApic")
-        .authorizationGrantType(new AuthorizationGrantType(authorizationGrantType)).clientId(clientId)
-        .clientSecret(clientSecret).tokenUri(tokenURI).scope(scope).build();
+    ImmutablePair<AuthorizedClientServiceOAuth2AuthorizedClientManager, List<ClientRegistration>> clientManagerClientListPair =
+        constructClientRegistrationList();
+
+    RestTemplate restTemplate = new RestTemplate();
+    restTemplate.setInterceptors(Arrays.asList(new OAuthRestTemplateInterceptorConfig(
+        clientManagerClientListPair.getLeft(), clientManagerClientListPair.getRight())));
+
+    SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+    requestFactory.setReadTimeout(readTimeout);
+    requestFactory.setConnectTimeout(connectTimeout);
+    restTemplate.setRequestFactory(requestFactory);
+
+    return restTemplate;
+  }
+
+  /**
+   * Custom OAuth Async Rest Template
+   * 
+   * @param threadPoolTaskExecutor {@link ThreadPoolTaskExecutor}
+   * @return - returns OAuth Async Rest Template
+   */
+  @Bean
+  @Qualifier("asyncOAuthRestTemplate")
+  public AsyncRestTemplate asyncOAuthRestTemplate(ThreadPoolTaskExecutor threadPoolTaskExecutor) {
+
+    ImmutablePair<AuthorizedClientServiceOAuth2AuthorizedClientManager, List<ClientRegistration>> clientManagerClientListPair =
+        constructClientRegistrationList();
+
+    SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+    requestFactory.setTaskExecutor(threadPoolTaskExecutor);
+    requestFactory.setConnectTimeout(connectTimeout);
+    requestFactory.setReadTimeout(readTimeout);
+
+    AsyncRestTemplate asyncRestTemplate = new AsyncRestTemplate();
+    asyncRestTemplate.setAsyncRequestFactory(requestFactory);
+    asyncRestTemplate.setInterceptors(Arrays.asList(new AsyncOAuthRestTemplateInterceptorConfig(
+        clientManagerClientListPair.getLeft(), clientManagerClientListPair.getRight())));
+
+    return asyncRestTemplate;
+
+  }
+
+  private ImmutablePair<AuthorizedClientServiceOAuth2AuthorizedClientManager, List<ClientRegistration>> constructClientRegistrationList() {
+
+    List<ClientRegistration> clientRegistrationList = new ArrayList<>();
+
+    oAuth2ClientProperties.getProvider().forEach((providerId, providerObj) -> {
+
+      Registration registration = oAuth2ClientProperties.getRegistration().entrySet().stream()
+          .filter(registrationObj -> registrationObj.getKey().equalsIgnoreCase(providerId))
+          .findAny().get().getValue();
+
+      clientRegistrationList.add(ClientRegistration.withRegistrationId(providerId)
+          .authorizationGrantType(
+              new AuthorizationGrantType(registration.getAuthorizationGrantType()))
+          .clientId(registration.getClientId()).clientSecret(registration.getClientSecret())
+          .tokenUri(providerObj.getTokenUri()).scope(registration.getScope()).build());
+
+    });
 
     ClientRegistrationRepository clientRegistrationRepository =
-        new InMemoryClientRegistrationRepository(clientRegistration);
+        new InMemoryClientRegistrationRepository(clientRegistrationList);
 
     InMemoryOAuth2AuthorizedClientService inMemoryOAuth2AuthorizedClientService =
         new InMemoryOAuth2AuthorizedClientService(clientRegistrationRepository);
@@ -61,12 +110,8 @@ public class OAuthRestTemplateConfig {
             inMemoryOAuth2AuthorizedClientService);
     authorizedClientManager.setAuthorizedClientProvider(authorizedClientProvider);
 
-    RestTemplate restTemplate = new RestTemplate();
-    restTemplate
-        .setInterceptors(Arrays.asList(new OAuthClientCredentialsRestTemplateInterceptorConfig(
-            authorizedClientManager, clientRegistration)));
+    return ImmutablePair.of(authorizedClientManager, clientRegistrationList);
 
-    return restTemplate;
   }
 
 }
