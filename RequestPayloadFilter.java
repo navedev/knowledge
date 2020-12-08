@@ -60,12 +60,24 @@ public class RequestPayloadFilter implements WebFilter {
     } else {
       long startTime = System.currentTimeMillis();
       ServerWebExchangeDecorator exchangeDecorator = reqRespLoggingDeecorator(exchange);
-      return chain.filter(exchangeDecorator).doOnSuccess(aVoid -> {
-        logRequestDetails(exchange, startTime, true, HttpStatus.OK.value());
-      }).doOnError(throwable -> {
-        int errorCode = getErrorCodeFromException(throwable);
-        logRequestDetails(exchange, startTime, false, errorCode);
-      });
+      Map<String, String> headers = exchange.getRequest().getHeaders().toSingleValueMap();
+      
+      if (headers.containsKey(EomsConstants.X_TRACE_ID)) {
+        exchange.getResponse().getHeaders().add(EomsConstants.X_TRACE_ID,
+            headers.get(EomsConstants.X_TRACE_ID));
+      }
+      
+      return chain.filter(exchangeDecorator)
+          .doOnSuccess(aVoid -> logRequestDetails(exchange, startTime, true, HttpStatus.OK.value()))
+          .doOnError(throwable -> {
+            int errorCode = getErrorCodeFromException(throwable);
+            logRequestDetails(exchange, startTime, false, errorCode);
+          }).subscriberContext(context -> {
+            if (headers.containsKey(EomsConstants.X_TRACE_ID)) {
+              return context.put(EomsConstants.X_TRACE_ID, headers.get(EomsConstants.X_TRACE_ID));
+            }
+            return context;
+          });
     }
   }
 
