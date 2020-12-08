@@ -1,0 +1,32 @@
+package com.lowes.eoms.eordermodservices.config;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import org.springframework.context.annotation.Configuration;
+import reactor.core.publisher.Hooks;
+import reactor.core.publisher.Operators;
+
+/**
+ * Config class which adds Hooks (category of configurable callbacks) on all Flux/Mono Operators
+ * which helps to copy current Context to MDC for logging
+ * 
+ * @author ndevara
+ *
+ */
+@Configuration
+public class ReactorContextToMDCConfiguration {
+
+  private static final String MDC_CONTEXT_REACTOR_KEY =
+      ReactorContextToMDCConfiguration.class.getName();
+
+  @PostConstruct
+  private void contextOperatorHook() {
+    Hooks.onEachOperator(MDC_CONTEXT_REACTOR_KEY,
+        Operators.lift((scannable, coreSubscriber) -> new ReactorContextToMDCSubscriber<>(coreSubscriber)));
+  }
+
+  @PreDestroy
+  private void cleanupHook() {
+    Hooks.resetOnEachOperator(MDC_CONTEXT_REACTOR_KEY);
+  }
+}
