@@ -24,7 +24,7 @@ public class ReactorContextToMDCConfiguration {
    * operators
    * 
    * <p>
-   * Operators.life() = is used to Decorate all operators with Subscriber implementation which in
+   * Operators.lift() = is used to Decorate all operators with Subscriber implementation which in
    * turn contains current Reactive Context
    * 
    */
